@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>SART Test</title>
+
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+
+  <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
+
+</head>
+
+<body></body>
+
+<script>
+
+/*************************************************
+ * jsPsych initialisieren
+ *************************************************/
+
+var jsPsych = initJsPsych({
+
+  on_finish: function(){
+
+    var trials = jsPsych.data.get()
+      .filter({
+        task:'sart',
+        phase:'test'
+      });
+
+    var commissions =
+      trials.filter({
+        commission_error:true
+      }).count();
+
+    var omissions =
+      trials.filter({
+        omission_error:true
+      }).count();
+
+    var correct_trials =
+      trials.filterCustom(function(x){
+
+        return (
+          x.correct == true &&
+          x.digit != 3 &&
+          x.rt != null
+        );
+
+      });
+
+    var mean_rt =
+      Math.round(
+        correct_trials
+          .select('rt')
+          .mean()
+      );
+
+    var accuracy =
+      Math.round(
+        trials.filter({correct:true}).count()
+        /
+        trials.count()
+        *100
+      );
+
+    console.log({
+      commissions,
+      omissions,
+      accuracy,
+      mean_rt
+    });
+
+  }
+
+});
+
+var timeline = [];
+
+
+/*************************************************
+ * SoSci-ID vorbereiten
+ *************************************************/
+
+var participant_id =
+jsPsych.data.getURLVariable('id');
+
+if(!participant_id){
+  participant_id = "testperson";
+}
+
+
+/*************************************************
+ * Begrüßung
+ *************************************************/
+
+var welcome = {
+
+  type: jsPsychHtmlKeyboardResponse,
+
+  stimulus: `
+    <h2>Willkommen!</h2>
+
+    <p>Vielen Dank für Ihre Teilnahme.</p>
+
+    <p>Drücken Sie eine beliebige Taste, um fortzufahren.</p>
+  `
+};
+
+timeline.push(welcome);
+
+
+/*************************************************
+ * Instruktionen
+ *************************************************/
+
+var instructions = {
+
+  type: jsPsychHtmlKeyboardResponse,
+
+  stimulus: `
+
+    <h2>Anleitung</h2>
+
+    <p>Sie sehen nacheinander Zahlen von 1 bis 9.</p>
+
+    <p>Ihre Aufgabe ist es, möglichst schnell auf den Button zu klicken.</p>
+
+    <p><strong>WICHTIG:</strong></p>
+
+    <p>Klicken Sie bei jeder Zahl auf den Button.</p>
+
+    <p><strong>AUßER bei der Zahl 3.</strong></p>
+
+    <p>Bei der Zahl 3 dürfen Sie NICHT klicken.</p>
+
+    <p>Bitte arbeiten Sie möglichst schnell und genau.</p>
+
+    <p>Drücken Sie eine beliebige Taste, um die Übung zu starten.</p>
+
+  `
+};
+
+timeline.push(instructions);
+
+
+/*************************************************
+ * Übungszahlen
+ *************************************************/
+
+var practice_numbers = [
+
+  1,2,4,5,6,7,8,9,
+  1,2,4,5,6,7,8,9,
+  3,3
+
+];
+
+practice_numbers =
+jsPsych.randomization.shuffle(practice_numbers);
+
+
+/*************************************************
+ * Haupttestzahlen
+ *************************************************/
+
+var numbers = [];
+
+for(let digit=1; digit<=9; digit++){
+
+  for(let i=0; i<25; i++){
+
+    numbers.push(digit);
+
+  }
+
+}
+
+numbers =
+jsPsych.randomization.shuffle(numbers);
+
+
+/*************************************************
+ * Stimulusdauer
+ *************************************************/
+
+var STIMULUS_DURATION = 250; // später z.B. auf 250 ändern
+
+var MASK_DURATION = 900;
+
+
+/*************************************************
+ * Stimulus
+ *************************************************/
+
+var number_trial = {
+
+  type: jsPsychHtmlButtonResponse,
+
+  stimulus: function(){
+
+    return `
+
+      <div style="
+      font-size:120px;
+      margin-bottom:40px;
+      font-weight:bold;
+      ">
+      ${jsPsych.timelineVariable('digit')}
+      </div>
+
+    `;
+
+  },
+
+  choices: ['HIER TIPPEN'],
+
+  button_html: `
+  <button class="jspsych-btn"
+  style="
+  font-size:28px;
+  padding:18px 40px;
+  min-width:250px;
+  ">
+  %choice%
+  </button>
+  `,
+
+  trial_duration: STIMULUS_DURATION,
+
+  response_ends_trial: false,
+
+  data: {
+
+    task: 'sart',
+
+    digit:
+    jsPsych.timelineVariable('digit'),
+
+    participant_id:
+    participant_id
+
+  }
+
+};
+
+
+/*************************************************
+ * Maske
+ *************************************************/
+
+var mask_trial = {
+
+  type: jsPsychHtmlKeyboardResponse,
+
+  stimulus: `
+
+    <div style="
+    font-size:100px;
+    ">
+    ⊗
+    </div>
+
+  `,
+
+  choices: "NO_KEYS",
+
+  trial_duration: MASK_DURATION
+
+};
+
+
+/*************************************************
+ * Fehlerberechnung
+ *************************************************/
+
+function score_trial(data){
+
+  var digit = data.digit;
+
+  data.commission_error = false;
+
+  data.omission_error = false;
+
+  if(digit == 3){
+
+    // bei 3 darf NICHT geklickt werden
+
+    if(data.response !== null){
+
+      data.commission_error = true;
+
+    }
+
+  }
+
+  else{
+
+    // bei allen anderen Zahlen MUSS geklickt werden
+
+    if(data.response === null){
+
+      data.omission_error = true;
+
+    }
+
+  }
+
+  data.correct =
+  !data.commission_error &&
+  !data.omission_error;
+
+}
+
+
+/*************************************************
+ * Übungsphase
+ *************************************************/
+
+var practice_procedure = {
+
+  timeline: [
+
+    {
+    ...number_trial,
+
+    data: {
+     task: 'sart',
+      phase: 'practice',
+      digit: jsPsych.timelineVariable('digit'),
+      participant_id: participant_id
+     },
+
+     on_finish: score_trial
+    },
+
+    mask_trial
+
+  ],
+
+  timeline_variables:
+  practice_numbers.map(x => ({digit:x})),
+
+  randomize_order: false
+
+};
+
+timeline.push(practice_procedure);
+
+
+/*************************************************
+ * Ende Übung
+ *************************************************/
+
+var practice_end = {
+
+  type: jsPsychHtmlKeyboardResponse,
+
+  stimulus: `
+
+    <h2>Übung beendet</h2>
+
+    <p>Jetzt beginnt der eigentliche Test.</p>
+
+    <p>Denken Sie daran:</p>
+
+    <p><strong>Bei jeder Zahl klicken – außer bei der 3.</strong></p>
+
+    <p>Drücken Sie eine Taste zum Start.</p>
+
+  `
+};
+
+timeline.push(practice_end);
+
+
+/*************************************************
+ * Haupttest
+ *************************************************/
+
+var test_procedure = {
+
+  timeline: [
+
+    {
+      ...number_trial,
+        data: {
+            task: 'sart',
+            phase: 'test',
+            digit: jsPsych.timelineVariable('digit'),
+            participant_id: participant_id
+        },
+      on_finish: score_trial
+    },
+
+    mask_trial
+
+  ],
+
+  timeline_variables:
+  numbers.map(x => ({digit:x})),
+
+  randomize_order: false
+
+};
+
+timeline.push(test_procedure);
+
+
+/*************************************************
+ * Auswertung
+ *************************************************/
+
+var debrief = {
+
+  type: jsPsychHtmlKeyboardResponse,
+
+  stimulus: function(){
+
+    var trials = jsPsych.data.get()
+      .filter({
+        task:'sart',
+        phase: 'test'
+    });
+
+
+
+    var commissions =
+      trials.filter({
+        commission_error:true
+      }).count();
+
+
+
+    var omissions =
+      trials.filter({
+        omission_error:true
+      }).count();
+
+
+
+    var correct_trials =
+      trials.filterCustom(function(x){
+
+        return (
+          x.correct == true &&
+          x.digit != 3 &&
+          x.rt != null
+        );
+
+      });
+
+
+
+    var mean_rt =
+      Math.round(
+        correct_trials
+        .select('rt')
+        .mean()
+      );
+
+
+
+    var accuracy =
+      Math.round(
+        trials.filter({correct:true}).count()
+        /
+        trials.count()
+        *100
+      );
+
+
+
+    return `
+
+      <h2>Test beendet</h2>
+
+      <p><strong>Commission Errors:</strong>
+      ${commissions}</p>
+
+      <p><strong>Omission Errors:</strong>
+      ${omissions}</p>
+
+      <p><strong>Accuracy:</strong>
+      ${accuracy}%</p>
+
+      <p><strong>Mittlere RT:</strong>
+      ${mean_rt} ms</p>
+
+      <p>Vielen Dank für Ihre Teilnahme.</p>
+
+      <p>Drücken Sie eine beliebige Taste zum Beenden.</p>
+
+    `;
+
+  }
+
+};
+
+timeline.push(debrief);
+
+
+/*************************************************
+ * Experiment starten
+ *************************************************/
+
+jsPsych.run(timeline);
+
+</script>
+
+</html>
