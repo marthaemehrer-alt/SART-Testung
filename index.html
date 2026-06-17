@@ -475,6 +475,14 @@ var debrief = {
         *100
       );
 
+    window.parent.postMessage({
+      type: "SART_RESULTS",
+      commissions: commissions,
+      omissions: omissions,
+      accuracy: accuracy,
+      mean_rt: mean_rt
+    }, "*");
+
 
 
     return `
