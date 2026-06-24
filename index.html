@@ -162,13 +162,13 @@ var practice_numbers = [
 
 ];
 
-practice_numbers =
-jsPsych.randomization.shuffle(practice_numbers);
+practice_numbers = jsPsych.randomization.shuffle(practice_numbers);
 
 
 /*************************************************
  * Haupttestzahlen
  *************************************************/
+jsPsych.randomization.setSeed("SART_fixed_order");
 
 var numbers = [];
 
@@ -182,8 +182,7 @@ for(let digit=1; digit<=9; digit++){
 
 }
 
-numbers =
-jsPsych.randomization.shuffle(numbers);
+numbers = jsPsych.randomization.shuffle(numbers);
 
 
 /*************************************************
