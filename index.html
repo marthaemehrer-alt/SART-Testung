@@ -189,13 +189,13 @@ numbers = jsPsych.randomization.shuffle(numbers);
  * Stimulusdauer
  *************************************************/
 
-var STIMULUS_DURATION = 500; // später z.B. auf 250 ändern
+var STIMULUS_DURATION = 250; // Originaldauer Robertson et al. (1996)
 
 var MASK_DURATION = 900;
 
 
 /*************************************************
- * Stimulus
+ * Stimulus + Maske in einem Trial
  *************************************************/
 
 var number_trial = {
@@ -204,14 +204,31 @@ var number_trial = {
 
   stimulus: function(){
 
+    const digit =
+      jsPsych.timelineVariable('digit');
+
     return `
 
-      <div style="
-      font-size:120px;
-      margin-bottom:40px;
-      font-weight:bold;
-      ">
-      ${jsPsych.timelineVariable('digit')}
+      <div id="sart-stimulus">
+
+        <div id="digit-display"
+          style="
+            font-size:120px;
+            margin-bottom:40px;
+            font-weight:bold;
+          ">
+          ${digit}
+        </div>
+
+        <div id="mask-display"
+          style="
+            display:none;
+            font-size:100px;
+            margin-bottom:40px;
+          ">
+          ⊗
+        </div>
+
       </div>
 
     `;
@@ -221,60 +238,51 @@ var number_trial = {
   choices: ['HIER TIPPEN'],
 
   button_html: `
-  <button class="jspsych-btn"
-  style="
-  font-size:28px;
-  padding:18px 40px;
-  min-width:250px;
-  ">
-  %choice%
-  </button>
+    <button class="jspsych-btn"
+      style="
+      font-size:28px;
+      padding:18px 40px;
+      min-width:250px;
+      ">
+      %choice%
+    </button>
   `,
 
-  trial_duration: STIMULUS_DURATION,
+  trial_duration:
+    STIMULUS_DURATION +
+    MASK_DURATION,
 
   response_ends_trial: false,
+
+  on_load: function(){
+
+    setTimeout(function(){
+
+      document.getElementById(
+        "digit-display"
+      ).style.display = "none";
+
+      document.getElementById(
+        "mask-display"
+      ).style.display = "block";
+
+    }, STIMULUS_DURATION);
+
+  },
 
   data: {
 
     task: 'sart',
 
     digit:
-    jsPsych.timelineVariable('digit'),
+      jsPsych.timelineVariable('digit'),
 
     participant_id:
-    participant_id
+      participant_id
 
   }
 
 };
-
-
-/*************************************************
- * Maske
- *************************************************/
-
-var mask_trial = {
-
-  type: jsPsychHtmlKeyboardResponse,
-
-  stimulus: `
-
-    <div style="
-    font-size:100px;
-    ">
-    ⊗
-    </div>
-
-  `,
-
-  choices: "NO_KEYS",
-
-  trial_duration: MASK_DURATION
-
-};
-
-
 /*************************************************
  * Fehlerberechnung
  *************************************************/
@@ -339,12 +347,10 @@ var practice_procedure = {
      on_finish: score_trial
     },
 
-    mask_trial
-
   ],
 
   timeline_variables:
-  practice_numbers.map(x => ({digit:x})),
+    practice_numbers.map(x => ({digit:x})),
 
   randomize_order: false
 
@@ -398,14 +404,12 @@ var test_procedure = {
       on_finish: score_trial
     },
 
-    mask_trial
+  ], 
 
-  ],
+    timeline_variables:
+     numbers.map(x => ({digit:x})),
 
-  timeline_variables:
-  numbers.map(x => ({digit:x})),
-
-  randomize_order: false
+    randomize_order: false
 
 };
 
