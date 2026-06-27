@@ -123,7 +123,7 @@ timeline.push(welcome);
 
 var instructions = {
 
-  type: jsPsychHtmlKeyboardResponse,
+  type: jsPsychHtmlButtonResponse,
 
   stimulus: `
 
@@ -143,10 +143,14 @@ var instructions = {
 
     <p>Bitte arbeiten Sie möglichst schnell und genau.</p>
 
-    <p>Drücken Sie eine beliebige Taste, um die Übung zu starten.</p>
+    <p>Tippen Sie auf „Übung starten“, um zu beginnen.</p>
 
-  `
+  `,
+
+  choices: ['Übung starten']
+
 };
+  
 
 timeline.push(instructions);
 
@@ -241,9 +245,9 @@ var number_trial = {
   button_html: `
     <button class="jspsych-btn"
       style="
-      font-size:28px;
-      padding:18px 40px;
-      min-width:250px;
+      font-size:32px;
+      padding:22px 50px;
+      min-width:280px;
       ">
       %choice%
     </button>
@@ -366,7 +370,7 @@ timeline.push(practice_procedure);
 
 var practice_end = {
 
-  type: jsPsychHtmlKeyboardResponse,
+  type: jsPsychHtmlButtonResponse,
 
   stimulus: `
 
@@ -378,9 +382,10 @@ var practice_end = {
 
     <p><strong>Bei jeder Zahl klicken – außer bei der 3.</strong></p>
 
-    <p>Drücken Sie eine Taste zum Start.</p>
+  `,
 
-  `
+  choices: ['Haupttest starten']
+
 };
 
 timeline.push(practice_end);
@@ -423,7 +428,7 @@ timeline.push(test_procedure);
 
 var debrief = {
 
-  type: jsPsychHtmlKeyboardResponse,
+  type: jsPsychHtmlButtonResponse,
 
   stimulus: function(){
 
@@ -507,11 +512,11 @@ var debrief = {
 
       <p>Vielen Dank für Ihre Teilnahme.</p>
 
-      <p>Drücken Sie eine beliebige Taste zum Beenden.</p>
+`;
 
-    `;
+},
 
-  }
+choices: ['Beenden']
 
 };
 
