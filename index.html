@@ -102,15 +102,16 @@ if(!participant_id){
 
 var welcome = {
 
-  type: jsPsychHtmlKeyboardResponse,
+  type: jsPsychHtmlButtonResponse,
 
   stimulus: `
-    <h2>Sie haben es fast geschafft! </h2>
+    <h2>Sie haben es fast geschafft!</h2>
 
     <p>Es folgt noch eine Aufmerksamkeitstestung, die etwa 5 Minuten dauern wird.</p>
+  `,
 
-    <p>Drücken Sie eine beliebige Taste, um fortzufahren.</p>
-  `
+  choices: ['Weiter']
+
 };
 
 timeline.push(welcome);
