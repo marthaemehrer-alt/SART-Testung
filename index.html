@@ -96,22 +96,22 @@ if(!participant_id){
   participant_id = "testperson";
 }
 
+
 /*************************************************
  * Begrüßung
  *************************************************/
 
 var welcome = {
 
-  type: jsPsychHtmlButtonResponse,
+  type: jsPsychHtmlKeyboardResponse,
 
   stimulus: `
-    <h2>Sie haben es fast geschafft!</h2>
+    <h2>Willkommen!</h2>
 
-    <p>Es folgt noch eine Aufmerksamkeitstestung, die etwa 5 Minuten dauern wird.</p>
-  `,
+    <p>Vielen Dank für Ihre Teilnahme.</p>
 
-  choices: ['Weiter']
-
+    <p>Drücken Sie eine beliebige Taste, um fortzufahren.</p>
+  `
 };
 
 timeline.push(welcome);
@@ -123,7 +123,7 @@ timeline.push(welcome);
 
 var instructions = {
 
-  type: jsPsychHtmlButtonResponse,
+  type: jsPsychHtmlKeyboardResponse,
 
   stimulus: `
 
@@ -143,14 +143,10 @@ var instructions = {
 
     <p>Bitte arbeiten Sie möglichst schnell und genau.</p>
 
-    <p>Tippen Sie auf „Übung starten“, um zu beginnen.</p>
+    <p>Drücken Sie eine beliebige Taste, um die Übung zu starten.</p>
 
-  `,
-
-  choices: ['Übung starten']
-
+  `
 };
-  
 
 timeline.push(instructions);
 
@@ -167,40 +163,80 @@ var practice_numbers = [
 
 ];
 
-practice_numbers = jsPsych.randomization.shuffle(practice_numbers);
+practice_numbers =
+jsPsych.randomization.shuffle(practice_numbers);
 
 
 /*************************************************
  * Haupttestzahlen
  *************************************************/
+
 jsPsych.randomization.setSeed("SART_fixed_order");
+
+// ---------- Alle Zahlen erzeugen ----------
 
 var numbers = [];
 
-for(let digit=1; digit<=9; digit++){
+for(let digit = 1; digit <= 9; digit++){
 
-  for(let i=0; i<25; i++){
+    for(let i = 0; i < 25; i++){
 
-    numbers.push(digit);
+        numbers.push(digit);
 
-  }
+    }
 
 }
 
-numbers = jsPsych.randomization.shuffle(numbers);
+// ---------- So lange mischen,
+// bis keine zwei 3en hintereinander liegen ----------
+
+let valid = false;
+
+while(!valid){
+
+    numbers = jsPsych.randomization.shuffle(numbers);
+
+    valid = true;
+
+    for(let i = 1; i < numbers.length; i++){
+
+        if(numbers[i] === 3 && numbers[i-1] === 3){
+
+            valid = false;
+            break;
+
+        }
+
+    }
+
+}
+
+// ---------- Blocknummer vergeben ----------
+
+numbers = numbers.map(function(digit,index){
+
+    return{
+
+        digit: digit,
+
+        block: Math.floor(index/25)+1
+
+    };
+
+});
 
 
 /*************************************************
  * Stimulusdauer
  *************************************************/
 
-var STIMULUS_DURATION = 250; // Originaldauer Robertson et al. (1996)
+var STIMULUS_DURATION = 250; // später z.B. auf 250 ändern
 
 var MASK_DURATION = 900;
 
 
 /*************************************************
- * Stimulus + Maske in einem Trial
+ * Stimulus
  *************************************************/
 
 var number_trial = {
@@ -209,31 +245,14 @@ var number_trial = {
 
   stimulus: function(){
 
-    const digit =
-      jsPsych.timelineVariable('digit');
-
     return `
 
-      <div id="sart-stimulus">
-
-        <div id="digit-display"
-          style="
-            font-size:120px;
-            margin-bottom:40px;
-            font-weight:bold;
-          ">
-          ${digit}
-        </div>
-
-        <div id="mask-display"
-          style="
-            display:none;
-            font-size:100px;
-            margin-bottom:40px;
-          ">
-          ⊗
-        </div>
-
+      <div style="
+      font-size:120px;
+      margin-bottom:40px;
+      font-weight:bold;
+      ">
+      ${jsPsych.timelineVariable('digit')}
       </div>
 
     `;
@@ -243,51 +262,60 @@ var number_trial = {
   choices: ['HIER TIPPEN'],
 
   button_html: `
-    <button class="jspsych-btn"
-      style="
-      font-size:32px;
-      padding:22px 50px;
-      min-width:280px;
-      ">
-      %choice%
-    </button>
+  <button class="jspsych-btn"
+  style="
+  font-size:28px;
+  padding:18px 40px;
+  min-width:250px;
+  ">
+  %choice%
+  </button>
   `,
 
-  trial_duration:
-    STIMULUS_DURATION +
-    MASK_DURATION,
+  trial_duration: STIMULUS_DURATION,
 
   response_ends_trial: false,
-
-  on_load: function(){
-
-    setTimeout(function(){
-
-      document.getElementById(
-        "digit-display"
-      ).style.display = "none";
-
-      document.getElementById(
-        "mask-display"
-      ).style.display = "block";
-
-    }, STIMULUS_DURATION);
-
-  },
 
   data: {
 
     task: 'sart',
 
     digit:
-      jsPsych.timelineVariable('digit'),
+    jsPsych.timelineVariable('digit'),
 
     participant_id:
-      participant_id
+    participant_id
 
   }
 
 };
+
+
+/*************************************************
+ * Maske
+ *************************************************/
+
+var mask_trial = {
+
+  type: jsPsychHtmlKeyboardResponse,
+
+  stimulus: `
+
+    <div style="
+    font-size:100px;
+    ">
+    ⊗
+    </div>
+
+  `,
+
+  choices: "NO_KEYS",
+
+  trial_duration: MASK_DURATION
+
+};
+
+
 /*************************************************
  * Fehlerberechnung
  *************************************************/
@@ -339,23 +367,27 @@ var practice_procedure = {
 
   timeline: [
 
-    {
-    ...number_trial,
+{
+  ...number_trial,
 
-    data: {
-     task: 'sart',
+  data: {
+      task: 'sart',
       phase: 'practice',
-      digit: jsPsych.timelineVariable('digit'),
-      participant_id: participant_id
-     },
 
-     on_finish: score_trial
-    },
+      digit: jsPsych.timelineVariable('digit'),
+     
+      participant_id: participant_id
+  },
+
+  on_finish: score_trial
+},
+
+    mask_trial
 
   ],
 
   timeline_variables:
-    practice_numbers.map(x => ({digit:x})),
+  practice_numbers.map(x => ({digit:x})),
 
   randomize_order: false
 
@@ -370,7 +402,7 @@ timeline.push(practice_procedure);
 
 var practice_end = {
 
-  type: jsPsychHtmlButtonResponse,
+  type: jsPsychHtmlKeyboardResponse,
 
   stimulus: `
 
@@ -382,10 +414,9 @@ var practice_end = {
 
     <p><strong>Bei jeder Zahl klicken – außer bei der 3.</strong></p>
 
-  `,
+    <p>Drücken Sie eine Taste zum Start.</p>
 
-  choices: ['Haupttest starten']
-
+  `
 };
 
 timeline.push(practice_end);
@@ -401,21 +432,32 @@ var test_procedure = {
 
     {
       ...number_trial,
-        data: {
-            task: 'sart',
-            phase: 'test',
-            digit: jsPsych.timelineVariable('digit'),
-            participant_id: participant_id
-        },
-      on_finish: score_trial
+        data:{
+
+          task:'sart',
+
+          phase:'test',
+
+          digit:
+          jsPsych.timelineVariable('digit'),
+
+          block:
+          jsPsych.timelineVariable('block'),
+
+          participant_id: participant_id
+
     },
 
-  ], 
+    on_finish: score_trial
+  },
+    
+  mask_trial
 
-    timeline_variables:
-     numbers.map(x => ({digit:x})),
+  ],
 
-    randomize_order: false
+  timeline_variables: numbers,
+
+  randomize_order: false
 
 };
 
@@ -428,95 +470,250 @@ timeline.push(test_procedure);
 
 var debrief = {
 
-  type: jsPsychHtmlButtonResponse,
+  type: jsPsychHtmlKeyboardResponse,
 
   stimulus: function(){
 
-    var trials = jsPsych.data.get()
-      .filter({
-        task:'sart',
-        phase: 'test'
+    var trials = jsPsych.data.get().filter({
+      task: "sart",
+      phase: "test"
     });
 
+    var blockResults = [];
 
+    for(let b = 1; b <= 9; b++){
 
-    var commissions =
-      trials.filter({
-        commission_error:true
-      }).count();
+      var blockTrials = trials.filter({block:b});
 
+      var goTrials = blockTrials.filterCustom(function(x){
+        return x.digit != 3;
+      });
 
+      var nogoTrials = blockTrials.filterCustom(function(x){
+        return x.digit == 3;
+      });
 
-    var omissions =
-      trials.filter({
-        omission_error:true
-      }).count();
+      //--------------------------------------------------
+      // Accuracy
+      //--------------------------------------------------
 
+      var accuracy = Math.round(
 
+        blockTrials.filter({correct:true}).count()
 
-    var correct_trials =
-      trials.filterCustom(function(x){
+        /
 
-        return (
-          x.correct == true &&
-          x.digit != 3 &&
-          x.rt != null
+        blockTrials.count()
+
+        *100
+
+      );
+
+      //--------------------------------------------------
+      // Commission Rate
+      //--------------------------------------------------
+
+      var commissions =
+        nogoTrials.filter({
+          commission_error:true
+        }).count();
+
+      var commissionRate = null;
+
+      if(nogoTrials.count() > 0){
+
+        commissionRate = Math.round(
+
+          commissions
+
+          /
+
+          nogoTrials.count()
+
+          *100
+
         );
+
+      }
+
+      //--------------------------------------------------
+      // Omission Rate
+      //--------------------------------------------------
+
+      var omissions =
+        goTrials.filter({
+          omission_error:true
+        }).count();
+
+      var omissionRate = null;
+
+      if(goTrials.count() > 0){
+
+        omissionRate = Math.round(
+
+          omissions
+
+          /
+
+          goTrials.count()
+
+          *100
+
+        );
+
+      }
+
+      //--------------------------------------------------
+      // Reaktionszeiten
+      //--------------------------------------------------
+
+      var rtValues =
+        goTrials
+        .filter({correct:true})
+        .select("rt")
+        .values;
+
+      var meanRT = null;
+      var rtSD = null;
+
+      if(rtValues.length > 0){
+
+        meanRT = Math.round(
+
+          rtValues.reduce((a,b)=>a+b,0)
+
+          /
+
+          rtValues.length
+
+        );
+
+      }
+
+      if(rtValues.length > 1){
+
+        var variance =
+
+          rtValues
+
+          .map(x => Math.pow(x-meanRT,2))
+
+          .reduce((a,b)=>a+b,0)
+
+          /
+
+          (rtValues.length-1);
+
+        rtSD = Math.round(
+
+          Math.sqrt(variance)
+
+        );
+
+      }
+
+      //--------------------------------------------------
+      // Ergebnisse speichern
+      //--------------------------------------------------
+
+      blockResults.push({
+
+        block: b,
+
+        accuracy: accuracy,
+
+        commissionRate: commissionRate,
+
+        omissionRate: omissionRate,
+
+        meanRT: meanRT,
+
+        rtSD: rtSD
 
       });
 
+    }
 
-
-    var mean_rt =
-      Math.round(
-        correct_trials
-        .select('rt')
-        .mean()
-      );
-
-
-
-    var accuracy =
-      Math.round(
-        trials.filter({correct:true}).count()
-        /
-        trials.count()
-        *100
-      );
+    //--------------------------------------------------
+    // Ergebnisse an SoSci schicken
+    //--------------------------------------------------
 
     window.parent.postMessage({
+
       type: "SART_RESULTS",
-      commissions: commissions,
-      omissions: omissions,
-      accuracy: accuracy,
-      mean_rt: mean_rt
+
+      blocks: blockResults
+
     }, "*");
 
-
+    //--------------------------------------------------
+    // Tabelle anzeigen
+    //--------------------------------------------------
 
     return `
 
-      <h2>Test beendet</h2>
+    <h2>Test beendet</h2>
 
-      <p><strong>Commission Errors:</strong>
-      ${commissions}</p>
+    <p>Vielen Dank für Ihre Teilnahme.</p>
 
-      <p><strong>Omission Errors:</strong>
-      ${omissions}</p>
+    <table
+    border="1"
+    style="
+    border-collapse:collapse;
+    margin:auto;
+    ">
 
-      <p><strong>Accuracy:</strong>
-      ${accuracy}%</p>
+      <tr>
 
-      <p><strong>Mittlere RT:</strong>
-      ${mean_rt} ms</p>
+        <th>Block</th>
 
-      <p>Vielen Dank für Ihre Teilnahme.</p>
+        <th>Accuracy</th>
 
-`;
+        <th>Commission</th>
 
-},
+        <th>Omission</th>
 
-choices: ['Beenden']
+        <th>RT</th>
+
+        <th>RT SD</th>
+
+      </tr>
+
+      ${blockResults.map(function(b){
+
+        return `
+
+        <tr>
+
+          <td>${b.block}</td>
+
+          <td>${b.accuracy}%</td>
+
+          <td>${b.commissionRate}%</td>
+
+          <td>${b.omissionRate}%</td>
+
+          <td>${b.meanRT}</td>
+
+          <td>${b.rtSD}</td>
+
+        </tr>
+
+        `;
+
+      }).join("")}
+
+    </table>
+
+    <p>
+
+    Drücken Sie eine beliebige Taste zum Beenden.
+
+    </p>
+
+    `;
+
+  }
 
 };
 
