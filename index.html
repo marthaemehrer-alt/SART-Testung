@@ -130,7 +130,7 @@ var instructions = {
 
   stimulus: `
 
-    <h2>Anleitung --- Debug Test</h2>
+    <h2>Anleitung</h2>
 
     <p>Sie sehen nacheinander Zahlen von 1 bis 9.</p>
 
@@ -457,7 +457,7 @@ var test_procedure = {
   randomize_order: false
 
 };
-
+console.log("Test - Main Procedure")
 timeline.push(test_procedure);
 
 
@@ -470,7 +470,7 @@ var debrief = {
   type: jsPsychHtmlButtonResponse,
 
   stimulus: function(){
-
+    console.log("Debrief gestartet");
     var trials = jsPsych.data.get().filter({
       task: "sart",
       phase: "test"
@@ -716,7 +716,7 @@ var debrief = {
   choices: ['Beenden']
 
 };
-
+console.log("Debrief zur Timeline hinzugefügt");
 timeline.push(debrief);
 
 
